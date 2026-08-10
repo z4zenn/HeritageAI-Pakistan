@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <circle cx="256" cy="256" r="230" fill="#1D9E75" />
+  <g fill="none" stroke="#EDE9DF" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Pediment (Roof) -->
+    <path d="M120 220 L256 120 L392 220 Z" fill="#EDE9DF" />
+    <path d="M120 220 H392" />
+    
+    <!-- Columns -->
+    <path d="M160 360 V250" />
+    <path d="M224 360 V250" />
+    <path d="M288 360 V250" />
+    <path d="M352 360 V250" />
+    
+    <!-- Stylobate (Base) -->
+    <path d="M100 380 H412" />
+  </g>
+</svg>
