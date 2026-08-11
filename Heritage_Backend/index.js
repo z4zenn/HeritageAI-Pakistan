@@ -20,7 +20,23 @@ require('./config/passport');
 const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
+// Place this block directly below "const app = express();" and BEFORE any routes
 
+// 1. Dynamic CORS handling (allows localhost, main Vercel domain, and Vercel preview deployment URLs)
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || /\.vercel\.app$/.test(origin) || origin.includes('localhost')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
+// 2. Increased payload size limits to accept base64 image strings
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // 1. Database Connection
 const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/heritage_db';
 mongoose.connect(mongoUri)
