@@ -76,3 +76,22 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`HeritageAI Pakistan API Server is running on port ${PORT}`);
 });
+const express = require('express');
+const cors = require('cors');
+
+const app = express();
+
+// 1. cors — right after creating app, before any routes
+app.use(cors({
+  origin: ['https://heritage-ai-pakistan.vercel.app']
+}));
+
+app.use(express.json()); // keep this if you already have it
+
+// 2. health route — goes with your other routes
+app.get('/health', (req, res) => res.send('OK'));
+
+// ...your existing routes stay here...
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Running on ${PORT}`));
