@@ -88,7 +88,8 @@ export function AuthProvider({ children }) {
 
   // Google Sign-In redirect handler
   const loginWithGoogle = () => {
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://heritageai-pakistan.onrender.com';
+    window.location.href = `${API_URL}/api/auth/google`;
   };
 
   // Logout handler
