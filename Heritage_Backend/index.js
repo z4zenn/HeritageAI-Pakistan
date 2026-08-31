@@ -28,24 +28,46 @@ const app = express();
 // 1. CORS — single consolidated middleware
 //    Supports: production Vercel domain, preview deploys, localhost dev
 // ──────────────────────────────────────────────
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     const allowed = [
+//       process.env.FRONTEND_URL,
+//       'http://localhost:5173',
+//       'http://localhost:3000'
+//     ].filter(Boolean);
+
 app.use(cors({
   origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+
     const allowed = [
       process.env.FRONTEND_URL,
+      'https://heritage-ai-pakistan-a2z9.vercel.app',
       'http://localhost:5173',
       'http://localhost:3000'
     ].filter(Boolean);
 
-    // Allow requests with no origin (server-to-server, curl, mobile apps)
-    // Allow any *.vercel.app preview deployment
-    // Allow explicitly whitelisted origins
-    if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    if (allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      return callback(null, true);
     }
+
+    return callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+}));
+
+// Allow requests with no origin (server-to-server, curl, mobile apps)
+// Allow any *.vercel.app preview deployment
+// Allow explicitly whitelisted origins
+if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
+  callback(null, true);
+} else {
+  callback(new Error('Not allowed by CORS'));
+}
+  },
+credentials: true
 }));
 
 // ──────────────────────────────────────────────
