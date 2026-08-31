@@ -86,10 +86,9 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Google Sign-In redirect handler
+  // Google Sign-In redirect handler — same-origin in monorepo mode
   const loginWithGoogle = () => {
-    const API_URL = import.meta.env.VITE_API_BASE_URL || 'https://heritageai-pakistan.onrender.com';
-    window.location.href = `${API_URL}/api/auth/google`;
+    window.location.href = '/api/auth/google';
   };
 
   // Logout handler
