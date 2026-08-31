@@ -29,22 +29,23 @@ const app = express();
 // ──────────────────────────────────────────────
 // 1. CORS — same-origin in production, allow localhost for dev
 // ──────────────────────────────────────────────
+const allowedOrigins = [
+  'https://heritageai-pakistan-1.onrender.com',
+  'http://localhost:5173',
+  'http://localhost:3000'
+];
+
 app.use(cors({
   origin: function (origin, callback) {
-    // In monorepo mode, most requests are same-origin (no origin header).
-    // Allow: no-origin requests, localhost dev servers, and any Vercel preview deploys.
+    // Allow requests with no origin (like mobile apps, curl, same-origin)
     if (!origin) return callback(null, true);
 
-    const allowed = [
-      'http://localhost:5173',
-      'http://localhost:3000'
-    ];
-
-    if (allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
+    if (allowedOrigins.includes(origin) || /\.onrender\.com$/.test(origin) || /\.vercel\.app$/.test(origin) || origin.includes('localhost')) {
       return callback(null, true);
     }
 
-    return callback(new Error('Not allowed by CORS'));
+    // Return false instead of throwing a hard error to prevent server crash
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
