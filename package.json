@@ -1,0 +1,9 @@
+{
+  "name": "heritageai-pakistan-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm install --prefix Heritage_Backend && npm install --prefix Heritage_Frontend && npm run build --prefix Heritage_Frontend",
+    "start": "npm start --prefix Heritage_Backend"
+  }
+}
