@@ -1,8 +1,10 @@
 // index.js
-// Entry point and Express server configurations for the HeritageAI Pakistan API
+// Entry point for HeritageAI Pakistan — Single-URL Monorepo Deployment
+// Express serves API routes under /api/* and the React production build for all other routes
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
@@ -25,27 +27,18 @@ const errorMiddleware = require('./middleware/errorMiddleware');
 const app = express();
 
 // ──────────────────────────────────────────────
-// 1. CORS — single consolidated middleware
-//    Supports: production Vercel domain, preview deploys, localhost dev
+// 1. CORS — same-origin in production, allow localhost for dev
 // ──────────────────────────────────────────────
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     const allowed = [
-//       process.env.FRONTEND_URL,
-//       'http://localhost:5173',
-//       'http://localhost:3000'
-//     ].filter(Boolean);
-
 app.use(cors({
   origin: function (origin, callback) {
+    // In monorepo mode, most requests are same-origin (no origin header).
+    // Allow: no-origin requests, localhost dev servers, and any Vercel preview deploys.
     if (!origin) return callback(null, true);
 
     const allowed = [
-      process.env.FRONTEND_URL,
-      'https://heritage-ai-pakistan-a2z9.vercel.app',
       'http://localhost:5173',
       'http://localhost:3000'
-    ].filter(Boolean);
+    ];
 
     if (allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
       return callback(null, true);
@@ -56,18 +49,6 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
-
-// Allow requests with no origin (server-to-server, curl, mobile apps)
-// Allow any *.vercel.app preview deployment
-// Allow explicitly whitelisted origins
-if (!origin || allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
-  callback(null, true);
-} else {
-  callback(new Error('Not allowed by CORS'));
-}
-  },
-credentials: true
 }));
 
 // ──────────────────────────────────────────────
@@ -98,11 +79,13 @@ mongoose.connect(mongoUri)
   .catch(err => console.error('MongoDB database connection failure:', err));
 
 // ──────────────────────────────────────────────
-// 5. Session & Passport — cross-domain cookie config for Vercel↔Render
+// 5. Session & Passport
+//    In monorepo mode cookies are same-origin, so sameSite:'lax' works fine.
+//    We keep 'none' + secure for production as a safe default.
 // ──────────────────────────────────────────────
 const isProduction = process.env.NODE_ENV === 'production';
 
-app.set('trust proxy', 1); // Trust first proxy (Render's reverse proxy)
+app.set('trust proxy', 1); // Trust Render's reverse proxy
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'heritage_session_secret',
@@ -110,7 +93,7 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
+    sameSite: 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
@@ -126,20 +109,32 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Base route for server health check
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ success: true, message: 'HeritageAI API service is healthy' });
 });
 
 // ──────────────────────────────────────────────
-// 7. Centralized Error Handling Middleware (must be registered last)
+// 7. Centralized Error Handling Middleware
 // ──────────────────────────────────────────────
 app.use(errorMiddleware);
 
 // ──────────────────────────────────────────────
-// 8. Server Listening — bind to 0.0.0.0 for Render
+// 8. Serve React Production Build (Monorepo Static Assets)
+//    This MUST come after all API routes and error middleware
 // ──────────────────────────────────────────────
-const PORT = process.env.PORT || 5000;
+app.use(express.static(path.join(__dirname, '../Heritage_Frontend/dist')));
+
+// Client-side routing catch-all — serves index.html for all non-API routes
+// so React Router can handle /explore, /site/:id, /login, etc.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../Heritage_Frontend/dist', 'index.html'));
+});
+
+// ──────────────────────────────────────────────
+// 9. Server Listening — bind to 0.0.0.0 for Render
+// ──────────────────────────────────────────────
+const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`HeritageAI Pakistan API Server is running on port ${PORT}`);
+  console.log(`HeritageAI Pakistan Server is running on port ${PORT}`);
 });

@@ -129,7 +129,7 @@ exports.googleCallback = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'OAuth user authentication failed.' });
     }
     const token = generateToken(req.user);
-    const redirectUrl = (process.env.FRONTEND_URL || 'http://localhost:5173') + '/auth/callback?token=' + token;
+    const redirectUrl = '/auth/callback?token=' + token;
     return res.redirect(redirectUrl);
   } catch (error) {
     next(error);
