@@ -2,6 +2,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Landmark, X, Send } from 'lucide-react';
 import axios from 'axios';
 
+// Helper to strip any model reasoning/thinking text before displaying to user
+const cleanResponseText = (text) => {
+  if (!text) return '';
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
+  cleaned = cleaned.replace(/<think>[\s\S]*/gi, '');
+  if (/^\s*(Here's a thinking process|Thinking Process:)/i.test(cleaned)) {
+    const parts = cleaned.split(/\n\s*\n/);
+    if (parts.length > 1) {
+      cleaned = parts.slice(1).join('\n\n');
+    }
+  }
+  return cleaned.trim();
+};
+
 // Send message to backend API instead of calling Groq directly in the browser
 const sendMessage = async (userMessage, siteData, history) => {
   const response = await axios.post('/api/ai/chat', {
@@ -11,7 +25,7 @@ const sendMessage = async (userMessage, siteData, history) => {
   }, { timeout: 30000 });
 
   if (response.data && response.data.success) {
-    return response.data.data.reply;
+    return cleanResponseText(response.data.data.reply);
   }
   throw new Error(response.data?.message || 'Chat request failed');
 };
