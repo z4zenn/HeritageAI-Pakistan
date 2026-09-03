@@ -5,6 +5,13 @@ const { generateEmbedding, buildQueryText } = require('../services/embeddingServ
 const Groq = require('groq-sdk')
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
+// Qwen models wrap chain-of-thought reasoning in <think>...</think> tags.
+// Strip these so users only see the clean final response.
+function stripThinkingTags(text) {
+  if (!text) return text
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+}
+
 async function recommend(req, res, next) {
   try {
     const { interests, region, travelStyle } = req.body
@@ -77,7 +84,7 @@ Respond ONLY as valid JSON array, no markdown:
       })
 
       const raw = completion.choices[0].message.content
-      const cleaned = raw.replace(/```json|```/g, '').trim()
+      const cleaned = stripThinkingTags(raw).replace(/```json|```/g, '').trim()
       reasons = JSON.parse(cleaned)
     } catch (err) {
       console.error('Groq error:', err.message)
@@ -271,7 +278,7 @@ async function getSiteInfo(req, res, next) {
     });
 
     const text = response.choices[0].message.content;
-    const clean = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
+    const clean = stripThinkingTags(text).replace(/\`\`\`json|\`\`\`/g, "").trim();
     const result = JSON.parse(clean);
 
     return res.status(200).json({
@@ -322,7 +329,7 @@ async function chat(req, res, next) {
       messages
     })
 
-    const reply = response.choices[0].message.content
+    const reply = stripThinkingTags(response.choices[0].message.content)
 
     return res.status(200).json({
       success: true,
