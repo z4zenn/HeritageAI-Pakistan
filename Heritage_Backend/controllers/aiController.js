@@ -56,7 +56,7 @@ async function recommend(req, res, next) {
     let reasons = []
     try {
       const completion = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
+        model: 'qwen/qwen3.6-27b',
         max_tokens: 800,
         messages: [{
           role: 'user',
@@ -245,7 +245,7 @@ async function getSiteInfo(req, res, next) {
     }
 
     const response = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: "qwen/qwen3.6-27b",
       max_tokens: 200,
       messages: [
         {
@@ -317,7 +317,7 @@ async function chat(req, res, next) {
     ]
 
     const response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: 'qwen/qwen3.6-27b',
       max_tokens: 300,
       messages
     })
