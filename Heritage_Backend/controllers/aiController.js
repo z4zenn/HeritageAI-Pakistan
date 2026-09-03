@@ -286,5 +286,55 @@ async function getSiteInfo(req, res, next) {
     });
   }
 }
+async function chat(req, res, next) {
+  try {
+    const { message, siteData, history } = req.body
 
-module.exports = { recommend, search, identify, getSiteInfo }
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a message.'
+      })
+    }
+
+    const siteName = siteData?.name || 'Heritage Site'
+    const siteType = siteData?.type || 'Monument'
+    const siteCity = siteData?.city || 'Pakistan'
+    const siteProvince = siteData?.province || 'Pakistan'
+    const siteEra = siteData?.era || 'Ancient History'
+    const sitePeriod = siteData?.period || 'Unknown'
+    const siteDescription = siteData?.description || ''
+
+    const systemPrompt = `You are an expert AI heritage guide for ${siteName}, a ${siteType} located in ${siteCity}, ${siteProvince}, Pakistan. Civilization era: ${siteEra}. Period: ${sitePeriod}. ${siteDescription} You speak in a warm storytelling tone like a passionate local historian, not a textbook. Keep every answer to 3-5 sentences maximum. If asked about booking or visiting, mention they can use the Tour Calculator on this page. Never make up facts — if unsure, say so honestly.`
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...(Array.isArray(history) ? history.map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' : 'user',
+        content: msg.content
+      })) : []),
+      { role: 'user', content: message }
+    ]
+
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 300,
+      messages
+    })
+
+    const reply = response.choices[0].message.content
+
+    return res.status(200).json({
+      success: true,
+      data: { reply }
+    })
+  } catch (error) {
+    console.error('Chat backend error:', error)
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Failed to generate chat response.'
+    })
+  }
+}
+
+module.exports = { recommend, search, identify, getSiteInfo, chat }

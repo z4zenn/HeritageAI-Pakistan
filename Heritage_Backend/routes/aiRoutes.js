@@ -9,5 +9,6 @@ router.post('/recommend', aiController.recommend);
 router.post('/search', aiController.search);
 router.post('/identify', aiController.identify);
 router.post('/site-info', aiController.getSiteInfo);
+router.post('/chat', aiController.chat);
 
 module.exports = router;

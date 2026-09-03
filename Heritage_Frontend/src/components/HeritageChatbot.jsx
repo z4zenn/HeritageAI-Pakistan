@@ -1,51 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Landmark, X, Send } from 'lucide-react';
-import Groq from "groq-sdk";
+import axios from 'axios';
 
-const getGroqClient = () => {
-  const apiKey = import.meta.env.VITE_GROQ_API_KEY;
-  if (!apiKey || apiKey === 'your_groq_api_key_here') {
-    return null;
-  }
-  return new Groq({
-    apiKey,
-    dangerouslyAllowBrowser: true
-  });
-};
-
-// Replace sendMessage function with exactly this:
+// Send message to backend API instead of calling Groq directly in the browser
 const sendMessage = async (userMessage, siteData, history) => {
-  const client = getGroqClient();
-  if (!client) {
-    throw new Error("Chatbot is currently offline (Groq API key is missing).");
+  const response = await axios.post('/api/ai/chat', {
+    message: userMessage,
+    siteData,
+    history
+  }, { timeout: 30000 });
+
+  if (response.data && response.data.success) {
+    return response.data.data.reply;
   }
-  const response = await client.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
-    max_tokens: 300,
-    messages: [
-      {
-        role: "system",
-        content: `You are an expert AI heritage guide for
-          ${siteData.name}, a ${siteData.type} located in
-          ${siteData.city}, ${siteData.province}, Pakistan.
-          Civilization era: ${siteData.era}.
-          Period: ${siteData.period}.
-          ${siteData.description}
-          You speak in a warm storytelling tone like a
-          passionate local historian, not a textbook.
-          Keep every answer to 3-5 sentences maximum.
-          If asked about booking or visiting, mention they
-          can use the Tour Calculator on this page.
-          Never make up facts — if unsure, say so honestly.`
-      },
-      ...history.map(msg => ({
-        role: msg.role === "assistant" ? "assistant" : "user",
-        content: msg.content
-      })),
-      { role: "user", content: userMessage }
-    ]
-  });
-  return response.choices[0].message.content;
+  throw new Error(response.data?.message || 'Chat request failed');
 };
 
 export default function HeritageChatbot({ site }) {
