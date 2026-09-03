@@ -5,11 +5,21 @@ const { generateEmbedding, buildQueryText } = require('../services/embeddingServ
 const Groq = require('groq-sdk')
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
-// Qwen models wrap chain-of-thought reasoning in <think>...</think> tags.
-// Strip these so users only see the clean final response.
 function stripThinkingTags(text) {
   if (!text) return text
-  return text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim()
+  // 1. Remove complete <think>...</think> blocks
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '')
+  // 2. Remove unclosed <think>... blocks (if output was truncated)
+  cleaned = cleaned.replace(/<think>[\s\S]*/gi, '')
+  // 3. Fallback: if reasoning text without <think> tag leaked in (starts with thinking process pattern)
+  if (/^\s*(Here's a thinking process|Thinking Process:)/i.test(cleaned)) {
+    // Look for double line break or bold header indicating start of final answer
+    const parts = cleaned.split(/\n\s*\n/)
+    if (parts.length > 1) {
+      cleaned = parts.slice(1).join('\n\n')
+    }
+  }
+  return cleaned.trim()
 }
 
 async function recommend(req, res, next) {
@@ -65,6 +75,7 @@ async function recommend(req, res, next) {
       const completion = await groq.chat.completions.create({
         model: 'qwen/qwen3.6-27b',
         max_tokens: 800,
+        chat_template_kwargs: { enable_thinking: false },
         messages: [{
           role: 'user',
           content: `A heritage tourism user has these preferences:
@@ -254,6 +265,7 @@ async function getSiteInfo(req, res, next) {
     const response = await groq.chat.completions.create({
       model: "qwen/qwen3.6-27b",
       max_tokens: 200,
+      chat_template_kwargs: { enable_thinking: false },
       messages: [
         {
           role: "system",
@@ -326,6 +338,7 @@ async function chat(req, res, next) {
     const response = await groq.chat.completions.create({
       model: 'qwen/qwen3.6-27b',
       max_tokens: 300,
+      chat_template_kwargs: { enable_thinking: false },
       messages
     })
 
