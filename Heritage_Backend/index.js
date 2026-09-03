@@ -1,8 +1,4 @@
 // index.js
-// Health check ping for uptime monitors
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date() });
-});
 // Entry point for HeritageAI Pakistan — Single-URL Monorepo Deployment
 // Express serves API routes under /api/* and the React production build for all other routes
 
@@ -32,6 +28,11 @@ const app = express();
 
 // 1. Enable Reverse Proxy Trust right after app creation
 app.set('trust proxy', 1);
+
+// Health check ping for uptime monitors
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date() });
+});
 
 // ──────────────────────────────────────────────
 // 1. CORS — same-origin in production, allow localhost for dev
