@@ -75,7 +75,6 @@ async function recommend(req, res, next) {
       const completion = await groq.chat.completions.create({
         model: 'qwen/qwen3.6-27b',
         max_tokens: 800,
-        chat_template_kwargs: { enable_thinking: false },
         messages: [{
           role: 'user',
           content: `A heritage tourism user has these preferences:
@@ -265,7 +264,6 @@ async function getSiteInfo(req, res, next) {
     const response = await groq.chat.completions.create({
       model: "qwen/qwen3.6-27b",
       max_tokens: 200,
-      chat_template_kwargs: { enable_thinking: false },
       messages: [
         {
           role: "system",
@@ -338,7 +336,6 @@ async function chat(req, res, next) {
     const response = await groq.chat.completions.create({
       model: 'qwen/qwen3.6-27b',
       max_tokens: 300,
-      chat_template_kwargs: { enable_thinking: false },
       messages
     })
 
