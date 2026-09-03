@@ -26,6 +26,9 @@ const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
 
+// 1. Enable Reverse Proxy Trust right after app creation
+app.set('trust proxy', 1);
+
 // ──────────────────────────────────────────────
 // 1. CORS — same-origin in production, allow localhost for dev
 // ──────────────────────────────────────────────
@@ -86,15 +89,13 @@ mongoose.connect(mongoUri)
 // ──────────────────────────────────────────────
 const isProduction = process.env.NODE_ENV === 'production';
 
-app.set('trust proxy', 1); // Trust Render's reverse proxy
-
 app.use(session({
   secret: process.env.SESSION_SECRET || 'heritage_session_secret',
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
