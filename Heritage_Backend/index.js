@@ -1,4 +1,8 @@
 // index.js
+// Health check ping for uptime monitors
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date() });
+});
 // Entry point for HeritageAI Pakistan — Single-URL Monorepo Deployment
 // Express serves API routes under /api/* and the React production build for all other routes
 
@@ -33,6 +37,7 @@ app.set('trust proxy', 1);
 // 1. CORS — same-origin in production, allow localhost for dev
 // ──────────────────────────────────────────────
 const allowedOrigins = [
+  'https://monorepo-heritageai-pakistan.onrender.com',
   'https://heritageai-pakistan-1.onrender.com',
   'http://localhost:5173',
   'http://localhost:3000'
