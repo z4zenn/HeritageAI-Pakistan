@@ -11,15 +11,21 @@ function stripThinkingTags(text) {
   let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '')
   // 2. Remove unclosed <think>... blocks (if output was truncated)
   cleaned = cleaned.replace(/<think>[\s\S]*/gi, '')
-  // 3. Fallback: if reasoning text without <think> tag leaked in (starts with thinking process pattern)
+  // 3. Fallback: if reasoning text without <think> tag leaked in
   if (/^\s*(Here's a thinking process|Thinking Process:)/i.test(cleaned)) {
-    // Look for double line break or bold header indicating start of final answer
     const parts = cleaned.split(/\n\s*\n/)
     if (parts.length > 1) {
       cleaned = parts.slice(1).join('\n\n')
     }
   }
-  return cleaned.trim()
+  cleaned = cleaned.trim()
+  // 4. Fallback for token truncation: if cleaning erased everything because model ran out of tokens inside <think>, extract the last paragraph
+  if (!cleaned && text.length > 0) {
+    const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+    cleaned = paragraphs[paragraphs.length - 1] || text
+    cleaned = cleaned.replace(/<think>|<\/think>/gi, '').trim()
+  }
+  return cleaned
 }
 
 async function recommend(req, res, next) {
@@ -335,7 +341,7 @@ async function chat(req, res, next) {
 
     const response = await groq.chat.completions.create({
       model: 'qwen/qwen3.6-27b',
-      max_tokens: 300,
+      max_tokens: 1024,
       messages
     })
 

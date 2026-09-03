@@ -13,7 +13,13 @@ const cleanResponseText = (text) => {
       cleaned = parts.slice(1).join('\n\n');
     }
   }
-  return cleaned.trim();
+  cleaned = cleaned.trim();
+  if (!cleaned && text.length > 0) {
+    const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+    cleaned = paragraphs[paragraphs.length - 1] || text;
+    cleaned = cleaned.replace(/<think>|<\/think>/gi, '').trim();
+  }
+  return cleaned;
 };
 
 // Send message to backend API instead of calling Groq directly in the browser
