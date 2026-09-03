@@ -11,7 +11,9 @@ function stripThinkingTags(text) {
   let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '')
   // 2. Remove unclosed <think>... blocks (if output was truncated)
   cleaned = cleaned.replace(/<think>[\s\S]*/gi, '')
-  // 3. Fallback: if reasoning text without <think> tag leaked in
+  // 3. Remove stage headers/drafting commentary (e.g., 5. **Final Polish:** ...)
+  cleaned = cleaned.replace(/^\s*\d+\.\s*\*\*(Draft|Outline|Final Polish|Analyze|Identify|Check|Critique|Refining).*?\*\*:?\s*/gmi, '')
+  // 4. Fallback: if reasoning text without <think> tag leaked in
   if (/^\s*(Here's a thinking process|Thinking Process:)/i.test(cleaned)) {
     const parts = cleaned.split(/\n\s*\n/)
     if (parts.length > 1) {
@@ -19,7 +21,7 @@ function stripThinkingTags(text) {
     }
   }
   cleaned = cleaned.trim()
-  // 4. Fallback for token truncation: if cleaning erased everything because model ran out of tokens inside <think>, extract the last paragraph
+  // 5. Fallback for token truncation: if cleaning erased everything because model ran out of tokens inside <think>, extract the last paragraph
   if (!cleaned && text.length > 0) {
     const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
     cleaned = paragraphs[paragraphs.length - 1] || text
@@ -81,9 +83,15 @@ async function recommend(req, res, next) {
       const completion = await groq.chat.completions.create({
         model: 'qwen/qwen3.6-27b',
         max_tokens: 800,
-        messages: [{
-          role: 'user',
-          content: `A heritage tourism user has these preferences:
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a JSON-only API. You must respond strictly with valid RFC8259 JSON. Do not include markdown code blocks, backticks, or any introductory/closing text.'
+          },
+          {
+            role: 'user',
+            content: `A heritage tourism user has these preferences:
 Interests: ${interests.join(', ')}
 Travel style: ${travelStyle}
 ${region ? `Region: ${region}` : ''}
@@ -91,19 +99,34 @@ ${region ? `Region: ${region}` : ''}
 These Pakistani heritage sites were matched:
 ${siteList}
 
-Write ONE enthusiastic sentence for each site explaining
-why it matches this user's interests. Be specific.
+Write ONE enthusiastic sentence for each site explaining why it matches this user's interests. Be specific.
 
-Respond ONLY as valid JSON array, no markdown:
-[{ "slug": "site-slug", "reason": "one sentence" }]`
-        }]
+Respond ONLY as valid JSON object with a "reasons" key containing an array of objects:
+{ "reasons": [{ "slug": "site-slug", "reason": "one sentence" }] }`
+          }
+        ]
       })
 
-      const raw = completion.choices[0].message.content
-      const cleaned = stripThinkingTags(raw).replace(/```json|```/g, '').trim()
-      reasons = JSON.parse(cleaned)
+      const rawContent = completion.choices[0]?.message?.content || '{}'
+      let parsedData;
+      try {
+        const cleaned = stripThinkingTags(rawContent).replace(/```json/gi, '').replace(/```/g, '').trim()
+        parsedData = JSON.parse(cleaned)
+      } catch (e1) {
+        const jsonMatch = rawContent.match(/\{[\s\S]*\}|\[[\s\S]*\]/)
+        if (jsonMatch) {
+          try {
+            parsedData = JSON.parse(jsonMatch[0])
+          } catch (e2) {}
+        }
+      }
+      if (Array.isArray(parsedData)) {
+        reasons = parsedData
+      } else if (parsedData && Array.isArray(parsedData.reasons)) {
+        reasons = parsedData.reasons
+      }
     } catch (err) {
-      console.error('Groq error:', err.message)
+      console.error('Groq error in recommend:', err.message)
     }
 
     const enrichedSites = sites.map(site => {
@@ -269,22 +292,18 @@ async function getSiteInfo(req, res, next) {
 
     const response = await groq.chat.completions.create({
       model: "qwen/qwen3.6-27b",
-      max_tokens: 200,
+      max_tokens: 800,
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
-          content: `You are an expert on Pakistani heritage sites.
-            Given a site name, return ONLY a JSON object with
-            these exact fields, no extra text:
-            {
-              "historySummary": "2-3 sentence history of the site",
-              "modernLocation": "modern day city, province, Pakistan",
-              "era": "civilization era name",
-              "period": "time period e.g. 16th Century CE"
-            }
-            If the site is not in Pakistan, still return the
-            JSON but with a note in historySummary.
-            Return JSON only — no markdown, no backticks.`
+          content: `You are a JSON-only API. You must respond strictly with valid RFC8259 JSON. Do not include markdown code blocks, backticks, or any introductory/closing text. Return a JSON object with these exact fields:
+{
+  "historySummary": "2-3 sentence history of the site",
+  "modernLocation": "modern day city, province, Pakistan",
+  "era": "civilization era name",
+  "period": "time period e.g. 16th Century CE"
+}`
         },
         {
           role: "user",
@@ -293,13 +312,38 @@ async function getSiteInfo(req, res, next) {
       ]
     });
 
-    const text = response.choices[0].message.content;
-    const clean = stripThinkingTags(text).replace(/\`\`\`json|\`\`\`/g, "").trim();
-    const result = JSON.parse(clean);
+    const rawContent = response.choices[0]?.message?.content || '{}';
+    let parsedData;
+    try {
+      const cleaned = stripThinkingTags(rawContent)
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .trim();
+      parsedData = JSON.parse(cleaned);
+    } catch (err) {
+      console.error('Failed to parse Groq response directly in getSiteInfo, attempting regex extraction:', rawContent);
+      const jsonMatch = rawContent.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          parsedData = JSON.parse(jsonMatch[0]);
+        } catch (matchErr) {
+          console.error('Regex JSON parse error:', matchErr);
+        }
+      }
+    }
+
+    if (!parsedData || typeof parsedData !== 'object') {
+      parsedData = {
+        historySummary: "A landmark site of profound archaeological and cultural heritage.",
+        modernLocation: "Pakistan",
+        era: "Historical Era",
+        period: "Ancient"
+      };
+    }
 
     return res.status(200).json({
       success: true,
-      data: result
+      data: parsedData
     });
   } catch (error) {
     console.error('getSiteInfo backend error:', error);
@@ -328,7 +372,12 @@ async function chat(req, res, next) {
     const sitePeriod = siteData?.period || 'Unknown'
     const siteDescription = siteData?.description || ''
 
-    const systemPrompt = `You are an expert AI heritage guide for ${siteName}, a ${siteType} located in ${siteCity}, ${siteProvince}, Pakistan. Civilization era: ${siteEra}. Period: ${sitePeriod}. ${siteDescription} You speak in a warm storytelling tone like a passionate local historian, not a textbook. Keep every answer to 3-5 sentences maximum. If asked about booking or visiting, mention they can use the Tour Calculator on this page. Never make up facts — if unsure, say so honestly.`
+    const systemPrompt = `You are an expert AI heritage guide for ${siteName}, a ${siteType} located in ${siteCity}, ${siteProvince}, Pakistan. Civilization era: ${siteEra}. Period: ${sitePeriod}. ${siteDescription} You speak in a warm storytelling tone like a passionate local historian, not a textbook. Keep every answer to 3-5 sentences maximum. If asked about booking or visiting, mention they can use the Tour Calculator on this page. Never make up facts — if unsure, say so honestly.
+
+CRITICAL OUTPUT FORMATTING RULES:
+- Output ONLY the final response intended directly for the user.
+- NEVER output internal reasoning, step numbers, stage headers, or drafting commentary (e.g., do NOT print "Outline:", "Draft:", "Step 1:", "Final Polish:", "Check sentence count", etc.).
+- Do NOT include any meta-talk or planning steps. Start immediately with the direct answer.`
 
     const messages = [
       { role: 'system', content: systemPrompt },
