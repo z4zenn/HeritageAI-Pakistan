@@ -5,20 +5,38 @@ import axios from 'axios';
 // Helper to strip any model reasoning/thinking text before displaying to user
 const cleanResponseText = (text) => {
   if (!text) return '';
-  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '');
-  cleaned = cleaned.replace(/<think>[\s\S]*/gi, '');
-  if (/^\s*(Here's a thinking process|Thinking Process:)/i.test(cleaned)) {
-    const parts = cleaned.split(/\n\s*\n/);
-    if (parts.length > 1) {
-      cleaned = parts.slice(1).join('\n\n');
+  
+  // 1. Remove complete <think>...</think> blocks
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+  // 2. If <think> was unclosed or if the model placed its entire answer inside <think>, extract dialogue from inside <think>:
+  if (!cleaned) {
+    const rawNoTags = text.replace(/<think>|<\/think>/gi, '');
+
+    // Check for quoted dialogue e.g. "Welcome to Harappa..."
+    const quotedMatches = [...rawNoTags.matchAll(/["“]([A-Z][^"”]{30,})["”]/g)];
+    if (quotedMatches && quotedMatches.length > 0) {
+      cleaned = quotedMatches[quotedMatches.length - 1][1];
+    } else {
+      const paragraphs = rawNoTags.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+      const cleanParagraphs = paragraphs.filter(p =>
+        !/^\s*(?:\d+\.|\*|-)\s*\*\*/.test(p) &&
+        !/^(Analyze|Identify|Draft|Check|Final|Revised|Count:|Tone:|Context:|Here's|Thinking|Ready|Output|Proceeds|\[Self-Correction|- First|- Answers)/i.test(p)
+      );
+      cleaned = cleanParagraphs[cleanParagraphs.length - 1] || text;
     }
   }
-  cleaned = cleaned.trim();
-  if (!cleaned && text.length > 0) {
-    const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
-    cleaned = paragraphs[paragraphs.length - 1] || text;
-    cleaned = cleaned.replace(/<think>|<\/think>/gi, '').trim();
-  }
+
+  // 3. Post-Processing Sanitizer (Failsafe Regex)
+  cleaned = cleaned
+    .replace(/^(?:\d+\.\s*\*\*.*?\*\*[\s\S]*?)+/i, '')
+    .replace(/^\s*(?:\d+\.|\*|-)\s*\*\*:?.*$/gmi, '')
+    .replace(/^\s*(?:-\s*First word.*|-\s*Answers directly.*|---\s*|Self-Critique:.*|Checklist:.*|Let's refine.*|Here's a breakdown.*|Let's make sure.*|Here's a thinking process:.*)\n+/gmi, '')
+    .replace(/^(?:Count:|Tone:|Context:|Constraints:|Proceeds|Output matches|Self-Correction|\[Output|All constraints|Proceed|Revised:).*$/gmi, '')
+    .replace(/\s*->\s*Exactly \d+ sentences.*$/gi, '')
+    .replace(/\s*->\s*Meets all criteria.*$/gi, '')
+    .trim();
+
   return cleaned;
 };
 
