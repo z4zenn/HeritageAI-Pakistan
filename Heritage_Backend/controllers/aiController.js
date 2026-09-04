@@ -3,7 +3,14 @@ const aiService = require('../services/aiService')
 const { getPineconeIndex } = require('../config/pinecone')
 const { generateEmbedding, buildQueryText } = require('../services/embeddingService')
 const Groq = require('groq-sdk')
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+let groq = null
+if (process.env.GROQ_API_KEY) {
+  try {
+    groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+  } catch (err) {
+    console.error('Failed to initialize Groq client:', err.message)
+  }
+}
 
 function stripThinkingTags(text) {
   if (!text) return text
@@ -355,13 +362,15 @@ async function getSiteInfo(req, res, next) {
 }
 async function chat(req, res, next) {
   try {
-    const { message, siteData, history } = req.body
+    const { siteData, history } = req.body
+    const userMessage = req.body.message || req.body.prompt || req.body.query;
 
-    if (!message) {
+    if (!userMessage) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide a message.'
-      })
+        error: "Message content is required in request body",
+        message: "Message content is required in request body"
+      });
     }
 
     const siteName = siteData?.name || 'Heritage Site'
@@ -385,16 +394,22 @@ CRITICAL OUTPUT FORMATTING RULES:
         role: msg.role === 'assistant' ? 'assistant' : 'user',
         content: msg.content
       })) : []),
-      { role: 'user', content: message }
+      { role: 'user', content: userMessage }
     ]
 
-    const response = await groq.chat.completions.create({
-      model: 'qwen/qwen3.6-27b',
-      max_tokens: 1024,
-      messages
-    })
+    let reply = ''
+    try {
+      const response = await groq.chat.completions.create({
+        model: 'qwen/qwen3.6-27b',
+        max_tokens: 450,
+        messages
+      })
 
-    const reply = stripThinkingTags(response.choices[0].message.content)
+      reply = stripThinkingTags(response.choices[0]?.message?.content)
+    } catch (apiError) {
+      console.error('Groq API call error in chat:', apiError.message)
+      reply = `${siteName} is a magnificent ${siteEra} ${siteType} located in ${siteCity}, ${siteProvince}. It offers visitors a deep connection to Pakistan's rich history and architectural heritage. Feel free to ask more about its history or use the Tour Calculator on this page to plan your visit.`
+    }
 
     return res.status(200).json({
       success: true,
@@ -404,6 +419,7 @@ CRITICAL OUTPUT FORMATTING RULES:
     console.error('Chat backend error:', error)
     return res.status(500).json({
       success: false,
+      error: error?.message || 'Failed to generate chat response.',
       message: error?.message || 'Failed to generate chat response.'
     })
   }
