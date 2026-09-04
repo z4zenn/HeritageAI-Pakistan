@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Lock, Mail, AlertTriangle, Landmark } from 'lucide-react';
 
 export default function Login() {
-  const { login, loginWithGoogle } = useAuth();
+  const { login /*, loginWithGoogle */ } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -183,7 +183,7 @@ export default function Login() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="w-full">
             {/* Error Message Box */}
-            {error && !error.includes('Google') && (
+            {error && (
               <div 
                 className="flex items-center gap-2 px-4 py-3 rounded-lg border font-sans text-[13px] mb-4" 
                 style={{ 
@@ -269,6 +269,8 @@ export default function Login() {
             </button>
           </form>
 
+          {/* Google Sign In elements temporarily disabled */}
+          {/* 
           {error && error.includes('Google') && (
             <div className="mt-4 p-3 bg-[#23282D] border-l-3 border-[#1D9E75] rounded flex items-center justify-between gap-3 text-left w-full">
               <div className="flex items-center gap-2.5">
@@ -292,7 +294,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Divider */}
           <div className="relative my-8 flex items-center justify-center">
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
               <div className="w-full border-t border-[#3D494F]"></div>
@@ -304,7 +305,6 @@ export default function Login() {
             </div>
           </div>
 
-          {/* Google Button */}
           <button
             type="button"
             onClick={loginWithGoogle}
@@ -318,6 +318,7 @@ export default function Login() {
             </svg>
             <span>Continue with Google</span>
           </button>
+          */}
 
           {/* Footer Link */}
           <div className="text-center mt-6">

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, Lock, Mail, User, AlertTriangle, Landmark } from 'lucide-react';
 
 export default function Register() {
-  const { register, loginWithGoogle } = useAuth();
+  const { register /*, loginWithGoogle */ } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -324,7 +324,8 @@ export default function Register() {
             </button>
           </form>
 
-          {/* Divider */}
+          {/* Google Sign In elements temporarily disabled */}
+          {/* 
           <div className="relative my-8 flex items-center justify-center">
             <div className="absolute inset-0 flex items-center" aria-hidden="true">
               <div className="w-full border-t border-[#3D494F]"></div>
@@ -336,7 +337,6 @@ export default function Register() {
             </div>
           </div>
 
-          {/* Google Button */}
           <button
             type="button"
             onClick={loginWithGoogle}
@@ -350,6 +350,7 @@ export default function Register() {
             </svg>
             <span>Continue with Google</span>
           </button>
+          */}
 
           {/* Footer Link */}
           <div className="text-center mt-6">
