@@ -86,7 +86,7 @@ export const siteData = [
   {
     id: 'mehrgarh',
     name: 'Mehrgarh Neolithic Site',
-    city: 'Sibi',
+    city: 'Kachi District',
     province: 'Balochistan',
     civilizationEra: 'Neolithic',
     siteType: 'Archaeological',

@@ -100,15 +100,15 @@ export default function SiteCard({ id, name, city, province, civilizationEra, si
             {name}
           </h3>
 
-          {/* Era / Period */}
+          {/* Era / City */}
           <div className="space-y-1">
             <div className="text-[11px] font-sans text-[#6B6560] dark:text-[#C8B89A] flex items-center gap-1">
-              <span className="text-[#1D9E75]">Era:</span>
+              <span className="text-[#1D9E75] font-semibold">Era:</span>
               <span>{civilizationEra}</span>
             </div>
             <div className="text-[11px] font-sans text-[#6B6560] dark:text-[#C8B89A] flex items-center gap-1">
-              <span className="text-[#1D9E75]">Period:</span>
-              <span className="truncate max-w-[200px]">{period}</span>
+              <span className="text-[#1D9E75] font-semibold">City:</span>
+              <span className="truncate max-w-[200px]">{city || 'Pakistan'}</span>
             </div>
           </div>
         </div>

@@ -182,6 +182,7 @@ export default function Explore() {
   const [aiIdentifiedName, setAiIdentifiedName] = useState('');
   const [aiConfidence, setAiConfidence] = useState('');
   const [aiSiteInfo, setAiSiteInfo] = useState(null);
+  const [aiRawResult, setAiRawResult] = useState(null);
   const [isFetchingInfo, setIsFetchingInfo] = useState(false);
 
   // Toast state
@@ -207,49 +208,65 @@ export default function Explore() {
     setIsAnalyzing(true);
     try {
       const result = await identifySite(selectedImageFile);
-      if (result.identified) {
-        setAiIdentifiedName(result.siteName);
-        setAiConfidence(result.confidence);
+      setAiRawResult(result);
+
+      if (result.identified && result.status !== "NOT_A_LANDMARK") {
+        setAiIdentifiedName(result.siteName || "Recognized Landmark");
+        setAiConfidence(result.confidence || "high");
         setShowUploadModal(false);
         setSelectedImageFile(null);
         setPreviewUrl('');
 
-        // Start fetching rich site info from Groq
         setIsFetchingInfo(true);
         setAiSiteInfo(null);
-        getSiteInfo(result.siteName)
-          .then((info) => {
-            setAiSiteInfo(info);
-            setIsFetchingInfo(false);
-          })
-          .catch((err) => {
-            console.error(err);
-            const fallbackSite = sites.find(site =>
-              site.name.toLowerCase() === result.siteName.toLowerCase() ||
-              site.name.toLowerCase().includes(result.siteName.toLowerCase()) ||
-              result.siteName.toLowerCase().includes(site.name.toLowerCase())
-            );
-            setAiSiteInfo({
-              historySummary: "A significant heritage site in Pakistan with deep historical and cultural importance.",
-              modernLocation: fallbackSite ? `${fallbackSite.city}, ${fallbackSite.province}, Pakistan` : "Pakistan",
-              era: fallbackSite ? fallbackSite.civilizationEra : "Ancient Era",
-              period: fallbackSite ? fallbackSite.period : "Unknown Period"
+
+        if (result.status === "PAKISTANI_HERITAGE" || result.status === "INTERNATIONAL_LANDMARK") {
+          getSiteInfo(result.siteName)
+            .then((info) => {
+              setAiSiteInfo(info);
+              setIsFetchingInfo(false);
+            })
+            .catch((err) => {
+              console.error(err);
+              const fallbackSite = sites.find(site =>
+                site.name.toLowerCase() === result.siteName.toLowerCase() ||
+                site.name.toLowerCase().includes(result.siteName.toLowerCase()) ||
+                result.siteName.toLowerCase().includes(site.name.toLowerCase())
+              );
+              setAiSiteInfo({
+                isPakistaniHeritage: result.isPakistaniSite,
+                historySummary: result.description || "A notable historical landmark.",
+                modernLocation: result.location || (result.isPakistaniSite ? "Pakistan" : "Outside Pakistan"),
+                era: fallbackSite ? fallbackSite.civilizationEra : "Historical Era",
+                period: fallbackSite ? fallbackSite.period : "Unknown Period"
+              });
+              setIsFetchingInfo(false);
             });
-            setIsFetchingInfo(false);
+        } else {
+          // UNKNOWN_LANDMARK
+          setAiSiteInfo({
+            isPakistaniHeritage: false,
+            historySummary: result.description || "This looks like a historical landmark or ruin, but its exact name could not be verified in global archives.",
+            modernLocation: result.location || "Unknown Location",
+            era: "Ancient / Historical",
+            period: "Unverified Period"
           });
+          setIsFetchingInfo(false);
+        }
       } else {
-        setAiIdentifiedName("Unknown Landmark");
+        // NOT_A_LANDMARK
+        setAiIdentifiedName("Not a Landmark");
         setAiConfidence("low");
         setShowUploadModal(false);
         setSelectedImageFile(null);
         setPreviewUrl('');
-
         setIsFetchingInfo(false);
         setAiSiteInfo({
-          historySummary: "We couldn't identify a recognized heritage site in this image. Try a clearer photo of a monument, fort, or temple.",
-          modernLocation: "Unknown Location",
-          era: "Ancient Era",
-          period: "Unknown Period"
+          isPakistaniHeritage: false,
+          historySummary: "We couldn't detect a recognizable landmark or heritage site in this photo. Please try uploading an image of a monument, ruin, or historic building.",
+          modernLocation: "N/A",
+          era: "N/A",
+          period: "N/A"
         });
       }
     } catch (err) {
@@ -264,6 +281,7 @@ export default function Explore() {
   };
 
   const handleClearAiResult = () => {
+    setAiRawResult(null);
     setAiIdentifiedName('');
     setAiConfidence('');
     setAiSiteInfo(null);
@@ -281,7 +299,7 @@ export default function Explore() {
     setTempEra('All');
   };
 
-  const matchedSite = aiIdentifiedName
+  const matchedSite = (aiIdentifiedName && (aiRawResult?.status === "PAKISTANI_HERITAGE" || aiRawResult?.isPakistaniSite))
     ? sites.find(site =>
       site.name.toLowerCase() === aiIdentifiedName.toLowerCase() ||
       site.name.toLowerCase().includes(aiIdentifiedName.toLowerCase()) ||
@@ -289,7 +307,16 @@ export default function Explore() {
     )
     : null;
 
-  const isOutsidePakistan = aiSiteInfo && !aiSiteInfo.modernLocation?.toLowerCase().includes("pakistan") && !matchedSite;
+  const currentStatus = aiRawResult?.status || (
+    aiIdentifiedName === "Not a Landmark" || (aiSiteInfo && !aiSiteInfo.isPakistaniHeritage && aiIdentifiedName.includes("Not"))
+      ? "NOT_A_LANDMARK"
+      : (aiSiteInfo?.isPakistaniHeritage ? "PAKISTANI_HERITAGE" : "INTERNATIONAL_LANDMARK")
+  );
+
+  const isNotALandmark = currentStatus === "NOT_A_LANDMARK" || aiRawResult?.identified === false;
+  const isPakistaniHeritage = currentStatus === "PAKISTANI_HERITAGE";
+  const isInternationalLandmark = currentStatus === "INTERNATIONAL_LANDMARK";
+  const isUnknownLandmark = currentStatus === "UNKNOWN_LANDMARK";
 
   const handleViewSimilarClick = () => {
     if (matchedSite) {
@@ -475,7 +502,7 @@ export default function Explore() {
       {aiIdentifiedName && (
         <div className="relative bg-[#23282D] border-[0.5px] border-[#3D494F] rounded-[20px] p-8 md:py-8 md:px-[36px] mb-8 animate-slide-down shadow-2xl">
           {/* Close / Dismiss panel */}
-          <div className="absolute top-6 right-6 flex flex-col items-center select-none">
+          <div className="absolute top-6 right-6 flex flex-col items-center select-none z-10">
             <button
               onClick={handleClearAiResult}
               className="text-xl text-[#C8B89A] hover:text-[#EDE9DF] transition-colors cursor-pointer font-sans bg-transparent border-none outline-none leading-none p-1"
@@ -491,182 +518,155 @@ export default function Explore() {
             </button>
           </div>
 
-          <div className="flex flex-col md:flex-row gap-8 pr-12 max-md:pr-0">
-            {/* Left Column: Site Info */}
-            <div className="flex-[1.4] flex flex-col justify-between">
-              <div>
-                {/* Top Row */}
-                <div className="flex items-center justify-between flex-wrap gap-2 w-full pr-12 max-md:pr-0">
-                  <div className="flex items-center">
-                    <Eye className="w-3.5 h-3.5 text-[#1D9E75]" />
-                    <span className="font-sans font-medium text-[11px] text-[#1D9E75] tracking-[0.1em] uppercase ml-1.5">
-                      AI Identified
+          {isNotALandmark ? (
+            /* NOT A LANDMARK Alert Banner */
+            <div className="flex items-start gap-4 pr-12 max-md:pr-0">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0 mt-1">
+                <AlertCircle className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="space-y-2">
+                <span className="text-[10px] tracking-wider uppercase font-medium px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 inline-block font-sans">
+                  Not a Landmark
+                </span>
+                <h3 className="text-2xl font-serif text-[#EDE9DF] font-medium">
+                  We couldn't detect a landmark in this photo
+                </h3>
+                <p className="text-xs text-[#C8B89A] font-sans leading-relaxed max-w-xl">
+                  We couldn't detect a recognizable landmark or heritage site in this photo. Please try uploading an image of a monument, ruin, or historic building.
+                </p>
+                <div className="pt-2">
+                  <button
+                    onClick={handleClearAiResult}
+                    className="px-5 py-2 rounded-full border border-[#1D9E75] text-[#1D9E75] hover:bg-[#1D9E75]/10 text-xs font-sans font-medium transition-all cursor-pointer"
+                  >
+                    Try Another Photo
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* LANDMARK IDENTIFIED RESULT PANEL */
+            <div className="flex flex-col md:flex-row gap-8 pr-12 max-md:pr-0">
+              {/* Left Column: Details */}
+              <div className="flex-[1.4] flex flex-col justify-between">
+                <div>
+                  {/* Top Row Badges */}
+                  <div className="flex items-center justify-between flex-wrap gap-2 w-full pr-12 max-md:pr-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] tracking-wider uppercase font-medium px-2.5 py-0.5 rounded-full bg-[#1D9E75]/15 text-[#1D9E75] border border-[#1D9E75]/30 font-sans">
+                        {isUnknownLandmark ? 'Potential Landmark' : 'AI Identified'}
+                      </span>
+                    </div>
+                    {aiConfidence && (
+                      <div className={`px-2.5 py-0.5 rounded-full border text-[10px] font-sans font-medium uppercase tracking-wider ${
+                        aiConfidence === 'high'
+                          ? 'bg-[#1D9E75]/15 border-[#1D9E75] text-[#1D9E75]'
+                          : aiConfidence === 'medium'
+                            ? 'bg-[#C8B89A]/10 border-[#C8B89A] text-[#C8B89A]'
+                            : 'bg-[#3D494F]/30 border-[#3D494F] text-[#3D494F]'
+                      }`}>
+                        {aiConfidence} confidence
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Title */}
+                  <h3 className="text-2xl md:text-3xl font-serif text-[#EDE9DF] font-medium mt-3 leading-tight">
+                    {aiIdentifiedName}
+                  </h3>
+
+                  {/* Description / Summary */}
+                  {isFetchingInfo ? (
+                    <div className="mt-3.5 space-y-2.5">
+                      <div className="h-4 bg-[#3D494F] rounded-[4px] w-full skeleton-shimmer" />
+                      <div className="h-4 bg-[#3D494F] rounded-[4px] w-[90%] skeleton-shimmer" />
+                      <div className="h-4 bg-[#3D494F] rounded-[4px] w-[75%] skeleton-shimmer" />
+                    </div>
+                  ) : (
+                    <p className="text-xs md:text-sm text-gray-400 font-sans font-light mt-2.5 leading-relaxed max-w-xl">
+                      {aiRawResult?.description || aiSiteInfo?.historySummary || "A historical site or monument."}
+                    </p>
+                  )}
+                </div>
+
+                {/* Location Row */}
+                <div className="mt-6 space-y-2">
+                  <div className="flex items-center text-xs text-gray-400 font-sans">
+                    <MapPin className="w-[13px] h-[13px] text-[#1D9E75] mr-1.5 shrink-0" />
+                    <span className="text-gray-500 mr-1">Location:</span>
+                    <span className="text-gray-200 font-medium">
+                      {aiRawResult?.location || aiSiteInfo?.modernLocation || "Unknown Location"}
                     </span>
                   </div>
-                  {aiConfidence && (
-                    <div className={`px-2.5 py-0.5 rounded-full border text-[10px] font-sans font-medium uppercase tracking-wider ${aiConfidence === 'high'
-                      ? 'bg-[#1D9E75]/15 border-[#1D9E75] text-[#1D9E75]'
-                      : aiConfidence === 'medium'
-                        ? 'bg-[#C8B89A]/10 border-[#C8B89A] text-[#C8B89A]'
-                        : 'bg-[#3D494F]/30 border-[#3D494F] text-[#3D494F]'
-                      }`}>
-                      {aiConfidence} Confidence
+
+                  {!isUnknownLandmark && (aiSiteInfo?.era || aiSiteInfo?.period) && (
+                    <div className="flex items-center text-xs text-gray-400 font-sans">
+                      <Landmark className="w-[13px] h-[13px] text-[#1D9E75] mr-1.5 shrink-0" />
+                      <span className="text-[#C8B89A]">
+                        {aiSiteInfo?.era || "Historical Era"} {aiSiteInfo?.period ? `· ${aiSiteInfo.period}` : ''}
+                      </span>
                     </div>
                   )}
                 </div>
+              </div>
 
-                {/* Site Name */}
-                <h2 className="font-serif font-bold text-[28px] text-[#EDE9DF] mt-2.5 leading-tight">
-                  {aiIdentifiedName}
-                </h2>
+              {/* Right Column: Context Banner */}
+              <div className="flex-[0.6] bg-[#1a1e22] border border-[#3D494F]/40 p-4 rounded-xl max-w-xs flex flex-col justify-between gap-3">
+                <div className="space-y-2">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#23282D] text-[#C8B89A] border border-[#3D494F] w-fit font-medium inline-block font-sans">
+                    {isPakistaniHeritage && 'Pakistani Heritage'}
+                    {isInternationalLandmark && 'International Landmark'}
+                    {isUnknownLandmark && 'Uncataloged Site'}
+                  </span>
 
-                {/* History Summary or Skeleton */}
-                {isFetchingInfo ? (
-                  <div className="mt-3.5 space-y-2.5">
-                    <div className="h-4 bg-[#3D494F] rounded-[4px] w-full skeleton-shimmer" />
-                    <div className="h-4 bg-[#3D494F] rounded-[4px] w-[90%] skeleton-shimmer" />
-                    <div className="h-4 bg-[#3D494F] rounded-[4px] w-[75%] skeleton-shimmer" />
-                  </div>
-                ) : (
-                  <p className="font-sans font-light text-[14px] text-[#C8B89A] mt-3 leading-[1.8] max-w-[95%]">
-                    {aiSiteInfo?.historySummary || "A significant heritage site in Pakistan with deep historical and cultural importance."}
+                  <p className="text-xs text-gray-300 leading-relaxed font-sans">
+                    {isPakistaniHeritage && matchedSite &&
+                      "This landmark is cataloged in our primary database. Explore full details and tour availability below."}
+
+                    {isPakistaniHeritage && !matchedSite &&
+                      "This landmark is located in Pakistan, but it is currently not added to our database catalog."}
+
+                    {isInternationalLandmark &&
+                      `This landmark is located in ${aiRawResult?.country || 'another country'}, outside Pakistan. HeritageAI focuses on Pakistan's heritage sites.`}
+
+                    {isUnknownLandmark &&
+                      "This looks like a historical landmark or ruin, but its exact name could not be verified in global archives. You can still explore verified sites across Pakistan below."}
                   </p>
+                </div>
+
+                {matchedSite ? (
+                  <div className="pt-2 flex flex-col gap-2">
+                    <div className="flex items-center gap-1.5 text-xs text-[#EDE9DF]">
+                      <Star className="w-3.5 h-3.5 fill-[#1D9E75] text-[#1D9E75]" />
+                      <span>{matchedSite.satisfactionRating || "4.8"} Rating</span>
+                    </div>
+                    <Link
+                      to={`/site/${matchedSite.id}`}
+                      className="w-full py-2.5 rounded-full bg-gradient-to-r from-[#1D9E75] to-[#15705A] text-[#EDE9DF] font-sans font-semibold text-xs text-center hover:scale-[1.02] transition-all"
+                    >
+                      Explore This Site →
+                    </Link>
+                  </div>
+                ) : isPakistaniHeritage ? (
+                  <button
+                    onClick={handleBrowseSimilarClick}
+                    className="text-xs text-[#1D9E75] hover:underline flex items-center gap-1 font-medium mt-1 cursor-pointer bg-transparent border-none p-0 text-left font-sans"
+                  >
+                    Browse Similar Sites &rarr;
+                  </button>
+                ) : (
+                  <div className="pt-1 flex flex-col gap-2">
+                    <button
+                      onClick={handleClearAiResult}
+                      className="w-full py-2 rounded-full border border-[#1D9E75] text-[#1D9E75] hover:bg-[#1D9E75]/10 text-xs font-sans font-medium transition-all cursor-pointer"
+                    >
+                      Explore Pakistani Heritage Sites →
+                    </button>
+                  </div>
                 )}
               </div>
-
-              {/* Location & Era */}
-              <div className="mt-6 space-y-2">
-                {/* Location Row */}
-                <div className="flex items-center">
-                  {isFetchingInfo ? (
-                    <div className="h-4 bg-[#3D494F] rounded-[4px] w-[50%] skeleton-shimmer" />
-                  ) : (
-                    <>
-                      <MapPin className="w-[13px] h-[13px] text-[#1D9E75]" />
-                      <span className="font-sans font-normal text-[13px] text-[#EDE9DF] ml-1.5">
-                        Modern Location: {aiSiteInfo?.modernLocation || "Pakistan"}
-                      </span>
-                    </>
-                  )}
-                </div>
-
-                {/* Era and Period Row */}
-                <div className="flex items-center">
-                  {isFetchingInfo ? (
-                    <div className="h-4 bg-[#3D494F] rounded-[4px] w-[40%] skeleton-shimmer" />
-                  ) : (
-                    <>
-                      <Landmark className="w-[13px] h-[13px] text-[#1D9E75]" />
-                      <span className="font-sans font-light text-[13px] text-[#C8B89A] ml-1.5">
-                        {aiSiteInfo?.era || "Ancient Era"} · {aiSiteInfo?.period || "Unknown Period"}
-                      </span>
-                    </>
-                  )}
-                </div>
-              </div>
             </div>
-
-            {/* Right Column: Availability + CTA */}
-            <div className="flex-[0.6] flex flex-col justify-start gap-4 md:border-l md:border-[#3D494F]/20 md:pl-8 max-md:pt-4 max-md:border-t max-md:border-[#3D494F]/20">
-              {isFetchingInfo ? (
-                // Show a loading skeleton for the right column
-                <div className="flex flex-col gap-4">
-                  <div className="h-8 bg-[#3D494F] rounded-[50px] w-[60%] skeleton-shimmer" />
-                  <div className="h-4 bg-[#3D494F] rounded-[4px] w-full skeleton-shimmer" />
-                  <div className="h-12 bg-[#3D494F] rounded-[50px] w-full skeleton-shimmer" />
-                </div>
-              ) : isOutsidePakistan ? (
-                // Located Outside Pakistan
-                <div className="flex flex-col gap-4">
-                  {/* Location badge */}
-                  <div className="self-start inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#C8B89A]/8 border border-[#C8B89A] text-[#C8B89A] text-[12px] font-sans font-medium">
-                    <span>📍 Located Outside Pakistan</span>
-                  </div>
-                  {/* Reason text */}
-                  <p className="font-sans font-light text-[13px] text-[#C8B89A] leading-[1.8]">
-                    {aiIdentifiedName} is located in {(() => {
-                      if (!aiSiteInfo || !aiSiteInfo.modernLocation) return "another country";
-                      const parts = aiSiteInfo.modernLocation.split(",");
-                      const country = parts[parts.length - 1].trim();
-                      return country.toLowerCase() === "pakistan" ? "another country" : country;
-                    })()}, not Pakistan. HeritageAI covers 62 archaeological sites across Pakistan only. You may be thinking of a similar site — explore our closest matches below.
-                  </p>
-                  {/* Primary Suggestion CTA */}
-                  <button
-                    onClick={handleClearAiResult}
-                    className="w-full h-[48px] rounded-[50px] border border-[#1D9E75] bg-transparent text-[#1D9E75] font-sans font-medium text-[14px] hover:bg-[#1D9E75]/5 hover:scale-[1.01] transition-all duration-200 cursor-pointer"
-                  >
-                    Explore Pakistani Heritage Sites →
-                  </button>
-                  {/* Secondary Ghost Button */}
-                  <button
-                    onClick={handleBrowseSimilarClick}
-                    className="w-full h-[40px] rounded-[50px] border border-[#3D494F] bg-transparent text-[#C8B89A] font-sans font-normal text-[13px] hover:text-[#EDE9DF] hover:border-[#1D9E75]/60 transition-all duration-200 cursor-pointer"
-                  >
-                    Browse by Era Instead
-                  </button>
-                </div>
-              ) : matchedSite ? (
-                // Site found in database
-                <div className="flex flex-col gap-4">
-                  {/* Availability badge */}
-                  <div className="self-start inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-[#1D9E75]/10 border border-[#1D9E75] text-[#1D9E75] text-[12px] font-sans font-medium">
-                    <span>✓ Available on HeritageAI</span>
-                  </div>
-
-                  {/* Site rating */}
-                  <div className="flex items-center gap-1.5">
-                    <Star className="w-4 h-4 fill-[#1D9E75] text-[#1D9E75]" />
-                    <span className="font-sans font-normal text-[13px] text-[#EDE9DF]">
-                      {matchedSite.satisfactionRating || "4.8"}
-                    </span>
-                  </div>
-
-                  {/* Primary CTA */}
-                  <Link
-                    to={`/site/${matchedSite.id}`}
-                    className="w-full h-[48px] rounded-[50px] bg-gradient-to-r from-[#1D9E75] to-[#15705A] text-[#EDE9DF] font-sans font-semibold text-[14px] flex items-center justify-center gap-1.5 hover:scale-[1.02] hover:shadow-[0_8px_24px_rgba(29,158,117,0.35)] transition-all duration-200 cursor-pointer"
-                    style={{
-                      boxShadow: '0 8px 24px rgba(29,158,117,0.15)'
-                    }}
-                  >
-                    Explore This Site →
-                  </Link>
-
-                  {/* Secondary Ghost Button */}
-                  <button
-                    onClick={handleViewSimilarClick}
-                    className="w-full h-[40px] rounded-[50px] border border-[#3D494F] bg-transparent text-[#C8B89A] font-sans font-normal text-[13px] hover:text-[#EDE9DF] hover:border-[#1D9E75]/60 transition-all duration-200 cursor-pointer"
-                  >
-                    View All Similar Sites
-                  </button>
-                </div>
-              ) : (
-                // Site NOT found in database
-                <div className="flex flex-col gap-4">
-                  {/* Unavailability badge */}
-                  <div className="self-start inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-[#3D494F]/20 border border-[#3D494F] text-[#C8B89A] text-[12px] font-sans font-medium">
-                    <span>Currently not added</span>
-                  </div>
-
-                  {/* Reason text */}
-                  <p className="font-sans font-light text-[12px] text-[#C8B89A]/50 italic leading-[1.7]">
-                    This landmark is located in Pakistan, but it is currently not added to our database.
-                  </p>
-
-                  {/* Suggestion button */}
-                  <button
-                    onClick={handleBrowseSimilarClick}
-                    disabled={isFetchingInfo}
-                    className={`w-full h-[48px] rounded-[50px] border border-[#3D494F] bg-transparent text-[#C8B89A] font-sans font-medium text-[14px] hover:text-[#EDE9DF] hover:border-[#1D9E75]/60 transition-all duration-200 cursor-pointer ${isFetchingInfo ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                  >
-                    Browse Similar Sites →
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       )}
 

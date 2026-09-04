@@ -73,15 +73,15 @@ export default function ExploreSiteCard({
             {name}
           </h3>
 
-          {/* Era & Period - Softer with a thin divider line above */}
+          {/* Era & City - Softer with a thin divider line above */}
           <div className="pt-3 border-t border-[#D5CFC6]/30 dark:border-[#3D494F]/30 space-y-1">
             <div className="text-[11px] font-sans text-[#6B6560]/85 dark:text-[#C8B89A]/75 flex items-center gap-1.5">
               <span className="font-light tracking-wide text-[9px] uppercase text-[#6B6560]/60 dark:text-[#C8B89A]/50">Era:</span>
               <span className="font-medium text-[#1A1E21] dark:text-[#EDE9DF]">{civilizationEra}</span>
             </div>
             <div className="text-[11px] font-sans text-[#6B6560]/85 dark:text-[#C8B89A]/75 flex items-center gap-1.5">
-              <span className="font-light tracking-wide text-[9px] uppercase text-[#6B6560]/60 dark:text-[#C8B89A]/50">Period:</span>
-              <span className="font-medium text-[#1A1E21] dark:text-[#EDE9DF] truncate max-w-[200px]">{period}</span>
+              <span className="font-light tracking-wide text-[9px] uppercase text-[#6B6560]/60 dark:text-[#C8B89A]/50">City:</span>
+              <span className="font-medium text-[#1A1E21] dark:text-[#EDE9DF] truncate max-w-[200px]">{city || 'Pakistan'}</span>
             </div>
           </div>
         </div>

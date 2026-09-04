@@ -23,13 +23,14 @@ API.interceptors.request.use((config) => {
 // Maps backend DB Site schema fields to the exact properties expected by frontend components
 export const mapDbSiteToFrontend = (dbSite) => {
   if (!dbSite) return null;
+  const siteCity = dbSite.city || dbSite.nearbyCity || (dbSite.location ? dbSite.location.split(',')[0].trim() : '') || '';
   return {
     _id: dbSite._id,
     id: dbSite._id || dbSite.slug,
     slug: dbSite.slug,
     name: dbSite.name,
-    city: dbSite.nearbyCity || '',
-    nearbyCity: dbSite.nearbyCity || '',
+    city: siteCity,
+    nearbyCity: siteCity,
     province: dbSite.region || '',
     region: dbSite.region || '',
     civilizationEra: dbSite.era || '',
