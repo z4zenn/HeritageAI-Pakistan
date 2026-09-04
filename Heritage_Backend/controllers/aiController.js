@@ -231,41 +231,32 @@ async function identify(req, res, next) {
             },
             {
               type: "text",
-              text: `
-You are an expert in worldwide heritage, landmarks, monuments, archaeology, architecture, and historical sites.
+              text: `You are an expert worldwide architectural, archaeological, and landmark visual classifier.
 
-Analyze the provided image carefully and determine whether it depicts a recognizable heritage site, natural landmark, monument, or archaeological site anywhere in the world.
+Analyze the uploaded image and classify it into one of four distinct states:
+1. "PAKISTANI_HERITAGE": A recognized historical site, fort, stupa, shrine, mosque, or ruin in Pakistan.
+2. "INTERNATIONAL_LANDMARK": A recognized landmark, monument, or historical site outside Pakistan.
+3. "UNKNOWN_LANDMARK": The image depicts what clearly appears to be an old monument, archaeological ruin, historic architecture, or shrine, but the exact identity or location cannot be determined with certainty.
+4. "NOT_A_LANDMARK": The image depicts common objects, food, pets, modern generic buildings, portraits, or unclear everyday photos.
 
-Only identify the site if there is reasonable visual evidence.
-
-If you can identify it with reasonable confidence, respond with ONLY this JSON object:
-
+Respond strictly with valid RFC8259 JSON in this exact structure:
 {
   "identified": true,
-  "siteName": "exact site name",
+  "status": "PAKISTANI_HERITAGE",
+  "siteName": "Exact Landmark Name or 'Unknown Historical Landmark'",
+  "location": "City, Province/State, Country (or 'Unknown Location')",
+  "country": "Country Name (or 'Unknown')",
+  "isPakistaniSite": true,
   "confidence": "high",
-  "description": "one concise sentence describing the site"
+  "description": "A concise 1-2 sentence description explaining what is visible in the image."
 }
 
-The confidence value MUST be exactly one of:
-"high"
-"medium"
-"low"
-
-If you cannot reliably identify the site, respond with ONLY:
-
-{
-  "identified": false
-}
-
-IMPORTANT RULES:
-- Return valid JSON only.
-- Do NOT use Markdown.
-- Do NOT use code fences.
-- Do NOT add explanations before or after the JSON.
-- Do NOT invent a site name.
-- If the image is unclear, generic, or insufficient to identify a specific site, return {"identified": false}.
-              `.trim(),
+RULES:
+- Return ONLY RFC8259 JSON without markdown fences or backticks.
+- "identified" must be false ONLY if status is "NOT_A_LANDMARK".
+- "isPakistaniSite" must be true ONLY if status === "PAKISTANI_HERITAGE".
+- ALWAYS identify the true landmark name (e.g., "Chureito Pagoda") even if outside Pakistan.
+- If it looks like a genuine ruin or landmark but the exact name cannot be verified, set status to "UNKNOWN_LANDMARK" and siteName to "Unknown Historical Landmark".`.trim(),
             },
           ],
         },
@@ -278,12 +269,46 @@ IMPORTANT RULES:
       throw new Error("API returned an empty response.");
     }
 
-    const clean = text
+    const clean = stripThinkingTags(text)
       .replace(/```json/gi, "")
       .replace(/```/g, "")
       .trim();
 
-    const result = JSON.parse(clean);
+    let result;
+    try {
+      result = JSON.parse(clean);
+    } catch (e) {
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          result = JSON.parse(match[0]);
+        } catch (err2) {
+          result = null;
+        }
+      }
+    }
+
+    if (!result || typeof result !== 'object') {
+      result = {
+        identified: false,
+        status: "NOT_A_LANDMARK",
+        siteName: "Not a Landmark",
+        location: "Unknown Location",
+        country: "Unknown",
+        isPakistaniSite: false,
+        confidence: "low",
+        description: "We couldn't detect a recognizable landmark or heritage site in this photo."
+      };
+    } else {
+      result.status = result.status || (result.identified ? (result.isPakistaniSite ? "PAKISTANI_HERITAGE" : "INTERNATIONAL_LANDMARK") : "NOT_A_LANDMARK");
+      result.identified = result.status !== "NOT_A_LANDMARK" && result.identified !== false;
+      result.siteName = result.siteName || (result.status === "UNKNOWN_LANDMARK" ? "Unknown Historical Landmark" : (result.identified ? "Recognized Landmark" : "Not a Landmark"));
+      result.location = result.location || "Unknown Location";
+      result.country = result.country || (result.status === "PAKISTANI_HERITAGE" ? "Pakistan" : "Unknown");
+      result.isPakistaniSite = result.status === "PAKISTANI_HERITAGE" || result.isPakistaniSite === true;
+      result.confidence = result.confidence || "medium";
+      result.description = result.description || "Visual landmark analysis result.";
+    }
 
     return res.status(200).json({
       success: true,
@@ -316,13 +341,15 @@ async function getSiteInfo(req, res, next) {
       messages: [
         {
           role: "system",
-          content: `You are a JSON-only API. You must respond strictly with valid RFC8259 JSON. Do not include markdown code blocks, backticks, or any introductory/closing text. Return a JSON object with these exact fields:
+          content: `You are a heritage API for Pakistan. You must respond strictly with valid RFC8259 JSON. Do not include markdown code blocks, backticks, or any introductory/closing text. Return a JSON object with these exact fields:
 {
+  "isPakistaniHeritage": true,
   "historySummary": "2-3 sentence history of the site",
-  "modernLocation": "modern day city, province, Pakistan",
-  "era": "civilization era name",
-  "period": "time period e.g. 16th Century CE"
-}`
+  "modernLocation": "City, Province, Pakistan",
+  "era": "Civilization era name",
+  "period": "Time period e.g. 16th Century CE"
+}
+If the requested site is NOT in Pakistan, set "isPakistaniHeritage": false.`
         },
         {
           role: "user",
@@ -353,11 +380,16 @@ async function getSiteInfo(req, res, next) {
 
     if (!parsedData || typeof parsedData !== 'object') {
       parsedData = {
-        historySummary: "A landmark site of profound archaeological and cultural heritage.",
-        modernLocation: "Pakistan",
-        era: "Historical Era",
-        period: "Ancient"
+        isPakistaniHeritage: false,
+        historySummary: "This site does not appear to be a recognized heritage landmark in Pakistan.",
+        modernLocation: "Outside Pakistan",
+        era: "Unknown Era",
+        period: "Unknown Period"
       };
+    }
+
+    if (parsedData.isPakistaniHeritage === undefined) {
+      parsedData.isPakistaniHeritage = parsedData.modernLocation ? parsedData.modernLocation.toLowerCase().includes("pakistan") : false;
     }
 
     return res.status(200).json({

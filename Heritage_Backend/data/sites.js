@@ -1,5 +1,5 @@
-// data/sites.js
-// Seed data for 62 key archaeological and heritage sites in Pakistan
+// sites.js
+// Comprehensive dataset of 62 heritage sites in Pakistan with era, city, and coordinates
 
 const sites = [
   {
@@ -15,7 +15,7 @@ const sites = [
       "lng": 67.6167
     },
     "images": [],
-    "nearbyCity": "Sibi",
+    "nearbyCity": "Kachi District",
     "visitingHours": "08:00 AM - 04:00 PM",
     "entryFee": "Free",
     "tags": [
@@ -25,7 +25,8 @@ const sites = [
       "stone-age",
       "archaeology",
       "balochistan"
-    ]
+    ],
+    "city": "Kachi District"
   },
   {
     "name": "Kot Diji",
@@ -50,7 +51,8 @@ const sites = [
       "citadel",
       "sindh",
       "excavation"
-    ]
+    ],
+    "city": "Khairpur"
   },
   {
     "name": "Chanhu-daro",
@@ -75,7 +77,8 @@ const sites = [
       "workshop",
       "sindh",
       "trade"
-    ]
+    ],
+    "city": "Nawabshah"
   },
   {
     "name": "Amri",
@@ -100,7 +103,8 @@ const sites = [
       "ancient",
       "sindh",
       "settlement"
-    ]
+    ],
+    "city": "Dadu"
   },
   {
     "name": "Rehman Dheri",
@@ -125,7 +129,8 @@ const sites = [
       "walled-town",
       "prehistoric",
       "beads"
-    ]
+    ],
+    "city": "Dera Ismail Khan"
   },
   {
     "name": "Takht-i-Bahi",
@@ -150,7 +155,8 @@ const sites = [
       "unesco",
       "kpk",
       "mardan"
-    ]
+    ],
+    "city": "Mardan"
   },
   {
     "name": "Taxila Sirkap",
@@ -175,7 +181,8 @@ const sites = [
       "punjab",
       "taxila",
       "ancient-city"
-    ]
+    ],
+    "city": "Rawalpindi"
   },
   {
     "name": "Dharmarajika Stupa Taxila",
@@ -200,7 +207,8 @@ const sites = [
       "taxila",
       "punjab",
       "monastery"
-    ]
+    ],
+    "city": "Rawalpindi"
   },
   {
     "name": "Jaulian Monastery Taxila",
@@ -225,7 +233,8 @@ const sites = [
       "university",
       "taxila",
       "punjab"
-    ]
+    ],
+    "city": "Rawalpindi"
   },
   {
     "name": "Mankiala Stupa",
@@ -250,7 +259,8 @@ const sites = [
       "potohar",
       "jataka",
       "punjab"
-    ]
+    ],
+    "city": "Rawalpindi"
   },
   {
     "name": "Ranigat",
@@ -275,7 +285,8 @@ const sites = [
       "granite",
       "kpk",
       "swabi"
-    ]
+    ],
+    "city": "Swabi"
   },
   {
     "name": "Shingardar Stupa",
@@ -300,7 +311,8 @@ const sites = [
       "monument",
       "kpk",
       "uttarasena"
-    ]
+    ],
+    "city": "Swat"
   },
   {
     "name": "Butkara Stupa",
@@ -325,7 +337,8 @@ const sites = [
       "ashoka",
       "carvings",
       "kpk"
-    ]
+    ],
+    "city": "Swat"
   },
   {
     "name": "Amluk-dara Stupa",
@@ -350,7 +363,8 @@ const sites = [
       "ancient",
       "gandhara",
       "kpk"
-    ]
+    ],
+    "city": "Swat"
   },
   {
     "name": "Katas Raj Temples",
@@ -375,7 +389,8 @@ const sites = [
       "mahabarata",
       "chakwal",
       "punjab"
-    ]
+    ],
+    "city": "Chakwal"
   },
   {
     "name": "Sharda Temple",
@@ -400,7 +415,8 @@ const sites = [
       "sharada",
       "neelum-valley",
       "ajk"
-    ]
+    ],
+    "city": "Neelum Valley"
   },
   {
     "name": "Tilla Jogian",
@@ -425,7 +441,8 @@ const sites = [
       "mountaintop",
       "jhelum",
       "punjab"
-    ]
+    ],
+    "city": "Jhelum"
   },
   {
     "name": "Kafir Kot",
@@ -450,7 +467,8 @@ const sites = [
       "shahi",
       "indus-river",
       "kpk"
-    ]
+    ],
+    "city": "Dera Ismail Khan"
   },
   {
     "name": "Ranikot Fort",
@@ -465,7 +483,7 @@ const sites = [
       "lng": 67.9031
     },
     "images": [],
-    "nearbyCity": "Sann",
+    "nearbyCity": "Jamshoro",
     "visitingHours": "07:00 AM - 06:00 PM",
     "entryFee": "100 PKR",
     "tags": [
@@ -475,7 +493,8 @@ const sites = [
       "medieval",
       "desolate",
       "sindh"
-    ]
+    ],
+    "city": "Jamshoro"
   },
   {
     "name": "Kartarpur Darbar Sahib",
@@ -500,7 +519,8 @@ const sites = [
       "peace-corridor",
       "narowal",
       "punjab"
-    ]
+    ],
+    "city": "Narowal"
   },
   {
     "name": "Gurdwara Panja Sahib",
@@ -525,7 +545,8 @@ const sites = [
       "hasan-abdal",
       "spring-water",
       "punjab"
-    ]
+    ],
+    "city": "Hasan Abdal"
   },
   {
     "name": "Gurdwara Janam Asthan Nankana Sahib",
@@ -550,7 +571,8 @@ const sites = [
       "guru-nanak",
       "nankana-sahib",
       "punjab"
-    ]
+    ],
+    "city": "Nankana Sahib"
   },
   {
     "name": "Gurdwara Dera Sahib Lahore",
@@ -575,7 +597,8 @@ const sites = [
       "lahore",
       "ranjit-singh",
       "punjab"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Lahore Fort (Shahi Qila)",
@@ -600,7 +623,8 @@ const sites = [
       "unesco",
       "islamic",
       "palace"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Badshahi Mosque",
@@ -624,7 +648,8 @@ const sites = [
       "punjab",
       "islamic",
       "worship"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Shalimar Gardens",
@@ -648,7 +673,8 @@ const sites = [
       "punjab",
       "unesco",
       "water"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Wazir Khan Mosque",
@@ -673,7 +699,8 @@ const sites = [
       "fresco",
       "lahore",
       "punjab"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Naulakha Pavilion",
@@ -698,7 +725,8 @@ const sites = [
       "inlay",
       "lahore-fort",
       "punjab"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Jahangir's Tomb",
@@ -723,7 +751,8 @@ const sites = [
       "minarets",
       "garden",
       "punjab"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Nur Jahan's Tomb",
@@ -748,7 +777,8 @@ const sites = [
       "shahdara",
       "garden",
       "punjab"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Hiran Minar",
@@ -773,7 +803,8 @@ const sites = [
       "antelope",
       "hunting",
       "punjab"
-    ]
+    ],
+    "city": "Sheikhupura"
   },
   {
     "name": "Akbari Sarai",
@@ -798,7 +829,8 @@ const sites = [
       "gateway",
       "shahdara",
       "punjab"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Shish Mahal",
@@ -823,7 +855,8 @@ const sites = [
       "mosaic",
       "lahore-fort",
       "punjab"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Makli Necropolis",
@@ -847,7 +880,8 @@ const sites = [
       "sindh",
       "unesco",
       "cemetery"
-    ]
+    ],
+    "city": "Thatta"
   },
   {
     "name": "Shah Rukn-e-Alam Tomb",
@@ -872,7 +906,8 @@ const sites = [
       "tilework",
       "multan",
       "punjab"
-    ]
+    ],
+    "city": "Multan"
   },
   {
     "name": "Bibi Jawindi Tomb",
@@ -897,7 +932,8 @@ const sites = [
       "blue-tiles",
       "uch-sharif",
       "punjab"
-    ]
+    ],
+    "city": "Uch Sharif"
   },
   {
     "name": "Multan Fort (Qila Kohna)",
@@ -922,7 +958,8 @@ const sites = [
       "shrine",
       "multan",
       "punjab"
-    ]
+    ],
+    "city": "Multan"
   },
   {
     "name": "Lal Mahal Lahore",
@@ -947,7 +984,8 @@ const sites = [
       "lahore",
       "punjab",
       "walled-city"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Frere Hall Karachi",
@@ -972,7 +1010,8 @@ const sites = [
       "sadequain",
       "karachi",
       "sindh"
-    ]
+    ],
+    "city": "Karachi"
   },
   {
     "name": "Mohatta Palace",
@@ -997,7 +1036,8 @@ const sites = [
       "museum",
       "karachi",
       "sindh"
-    ]
+    ],
+    "city": "Karachi"
   },
   {
     "name": "Government College Lahore (GCU)",
@@ -1022,7 +1062,8 @@ const sites = [
       "clock-tower",
       "lahore",
       "punjab"
-    ]
+    ],
+    "city": "Lahore"
   },
   {
     "name": "Rohtas Fort",
@@ -1046,7 +1087,8 @@ const sites = [
       "punjab",
       "unesco",
       "military"
-    ]
+    ],
+    "city": "Jhelum"
   },
   {
     "name": "Derawar Fort",
@@ -1070,7 +1112,8 @@ const sites = [
       "punjab",
       "desert",
       "cholistan"
-    ]
+    ],
+    "city": "Bahawalpur"
   },
   {
     "name": "Altit Fort",
@@ -1095,7 +1138,8 @@ const sites = [
       "tibetan-style",
       "gilgit-baltistan",
       "cliff"
-    ]
+    ],
+    "city": "Hunza"
   },
   {
     "name": "Baltit Fort",
@@ -1110,7 +1154,7 @@ const sites = [
       "lng": 74.6719
     },
     "images": [],
-    "nearbyCity": "Karimabad Hunza",
+    "nearbyCity": "Hunza",
     "visitingHours": "09:00 AM - 06:00 PM",
     "entryFee": "400 PKR",
     "tags": [
@@ -1120,7 +1164,8 @@ const sites = [
       "tibetan-style",
       "gilgit-baltistan",
       "museum"
-    ]
+    ],
+    "city": "Hunza"
   },
   {
     "name": "Attock Fort",
@@ -1145,7 +1190,8 @@ const sites = [
       "military",
       "attock",
       "punjab"
-    ]
+    ],
+    "city": "Attock"
   },
   {
     "name": "Bala Hissar Fort",
@@ -1170,7 +1216,8 @@ const sites = [
       "sikh",
       "museum",
       "kpk"
-    ]
+    ],
+    "city": "Peshawar"
   },
   {
     "name": "Miri Fort",
@@ -1195,7 +1242,8 @@ const sites = [
       "medieval",
       "balochistan",
       "mound"
-    ]
+    ],
+    "city": "Quetta"
   },
   {
     "name": "Ram Kot Fort",
@@ -1220,7 +1268,8 @@ const sites = [
       "medieval",
       "ajk",
       "boat-access"
-    ]
+    ],
+    "city": "Mirpur"
   },
   {
     "name": "Sheikhupura Fort",
@@ -1245,7 +1294,8 @@ const sites = [
       "sheikhupura",
       "frescoes",
       "punjab"
-    ]
+    ],
+    "city": "Sheikhupura"
   },
   {
     "name": "Shahbazgarhi Rock Edicts (Ashoka)",
@@ -1270,7 +1320,8 @@ const sites = [
       "kharosthi",
       "mardan",
       "kpk"
-    ]
+    ],
+    "city": "Mardan"
   },
   {
     "name": "Mansehra Rock Edicts (Ashoka)",
@@ -1295,7 +1346,8 @@ const sites = [
       "kharosthi",
       "mansehra",
       "kpk"
-    ]
+    ],
+    "city": "Mansehra"
   },
   {
     "name": "Moola Chotok",
@@ -1320,7 +1372,8 @@ const sites = [
       "canyon",
       "khuzdar",
       "balochistan"
-    ]
+    ],
+    "city": "Khuzdar"
   },
   {
     "name": "Gorakh Hill",
@@ -1345,7 +1398,8 @@ const sites = [
       "kirthar",
       "dadu",
       "sindh"
-    ]
+    ],
+    "city": "Dadu"
   },
   {
     "name": "Pir Ghaib",
@@ -1370,7 +1424,8 @@ const sites = [
       "sufi",
       "hub",
       "balochistan"
-    ]
+    ],
+    "city": "Hub"
   },
   {
     "name": "Ali Masjid (Khyber Pass)",
@@ -1395,7 +1450,8 @@ const sites = [
       "mughal",
       "landi-kotal",
       "kpk"
-    ]
+    ],
+    "city": "Landi Kotal"
   },
   {
     "name": "Peshawar Museum",
@@ -1420,7 +1476,8 @@ const sites = [
       "victorian",
       "peshawar",
       "kpk"
-    ]
+    ],
+    "city": "Peshawar"
   },
   {
     "name": "Taxila Museum",
@@ -1445,7 +1502,8 @@ const sites = [
       "taxila",
       "punjab",
       "sculptures"
-    ]
+    ],
+    "city": "Taxila"
   },
   {
     "name": "Quaid-e-Azam Residency (Ziarat)",
@@ -1470,7 +1528,8 @@ const sites = [
       "ziarat",
       "juniper",
       "balochistan"
-    ]
+    ],
+    "city": "Ziarat"
   },
   {
     "name": "Harappa",
@@ -1496,7 +1555,8 @@ const sites = [
       "punjab",
       "archaeology",
       "granary"
-    ]
+    ],
+    "city": "Sahiwal"
   },
   {
     "name": "Mohenjo-daro",
@@ -1523,7 +1583,8 @@ const sites = [
       "archaeology",
       "sindh",
       "bath"
-    ]
+    ],
+    "city": "Larkana"
   },
   {
     "name": "Taxila",
@@ -1550,7 +1611,8 @@ const sites = [
       "unesco",
       "ancient",
       "monastery"
-    ]
+    ],
+    "city": "Rawalpindi"
   }
 ];
 

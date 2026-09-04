@@ -44,6 +44,9 @@ const siteSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  city: {
+    type: String
+  },
   nearbyCity: {
     type: String,
     required: true
