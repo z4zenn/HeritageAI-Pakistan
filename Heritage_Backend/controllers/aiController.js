@@ -13,28 +13,40 @@ if (process.env.GROQ_API_KEY) {
 }
 
 function stripThinkingTags(text) {
-  if (!text) return text
+  if (!text) return text;
+  
   // 1. Remove complete <think>...</think> blocks
-  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '')
-  // 2. Remove unclosed <think>... blocks (if output was truncated)
-  cleaned = cleaned.replace(/<think>[\s\S]*/gi, '')
-  // 3. Remove stage headers/drafting commentary (e.g., 5. **Final Polish:** ...)
-  cleaned = cleaned.replace(/^\s*\d+\.\s*\*\*(Draft|Outline|Final Polish|Analyze|Identify|Check|Critique|Refining).*?\*\*:?\s*/gmi, '')
-  // 4. Fallback: if reasoning text without <think> tag leaked in
-  if (/^\s*(Here's a thinking process|Thinking Process:)/i.test(cleaned)) {
-    const parts = cleaned.split(/\n\s*\n/)
-    if (parts.length > 1) {
-      cleaned = parts.slice(1).join('\n\n')
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+  // 2. If <think> was unclosed or if the model placed its entire answer inside <think>, extract dialogue from inside <think>:
+  if (!cleaned) {
+    const rawNoTags = text.replace(/<think>|<\/think>/gi, '');
+
+    // Check for quoted dialogue e.g. "Welcome to Harappa..."
+    const quotedMatches = [...rawNoTags.matchAll(/["“]([A-Z][^"”]{30,})["”]/g)];
+    if (quotedMatches && quotedMatches.length > 0) {
+      cleaned = quotedMatches[quotedMatches.length - 1][1];
+    } else {
+      const paragraphs = rawNoTags.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+      const cleanParagraphs = paragraphs.filter(p =>
+        !/^\s*(?:\d+\.|\*|-)\s*\*\*/.test(p) &&
+        !/^(Analyze|Identify|Draft|Check|Final|Revised|Count:|Tone:|Context:|Here's|Thinking|Ready|Output|Proceeds|\[Self-Correction|- First|- Answers)/i.test(p)
+      );
+      cleaned = cleanParagraphs[cleanParagraphs.length - 1] || text;
     }
   }
-  cleaned = cleaned.trim()
-  // 5. Fallback for token truncation: if cleaning erased everything because model ran out of tokens inside <think>, extract the last paragraph
-  if (!cleaned && text.length > 0) {
-    const paragraphs = text.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
-    cleaned = paragraphs[paragraphs.length - 1] || text
-    cleaned = cleaned.replace(/<think>|<\/think>/gi, '').trim()
-  }
-  return cleaned
+
+  // 3. Post-Processing Sanitizer (Failsafe Regex)
+  cleaned = cleaned
+    .replace(/^(?:\d+\.\s*\*\*.*?\*\*[\s\S]*?)+/i, '')
+    .replace(/^\s*(?:\d+\.|\*|-)\s*\*\*:?.*$/gmi, '')
+    .replace(/^\s*(?:-\s*First word.*|-\s*Answers directly.*|---\s*|Self-Critique:.*|Checklist:.*|Let's refine.*|Here's a breakdown.*|Let's make sure.*|Here's a thinking process:.*)\n+/gmi, '')
+    .replace(/^(?:Count:|Tone:|Context:|Constraints:|Proceeds|Output matches|Self-Correction|\[Output|All constraints|Proceed|Revised:).*$/gmi, '')
+    .replace(/\s*->\s*Exactly \d+ sentences.*$/gi, '')
+    .replace(/\s*->\s*Meets all criteria.*$/gi, '')
+    .trim();
+
+  return cleaned;
 }
 
 async function recommend(req, res, next) {
@@ -379,17 +391,16 @@ async function chat(req, res, next) {
     const siteProvince = siteData?.province || 'Pakistan'
     const siteEra = siteData?.era || 'Ancient History'
     const sitePeriod = siteData?.period || 'Unknown'
-    const siteDescription = siteData?.description || ''
 
-    const systemPrompt = `You are an expert AI heritage guide for ${siteName}, a ${siteType} located in ${siteCity}, ${siteProvince}, Pakistan. Civilization era: ${siteEra}. Period: ${sitePeriod}. ${siteDescription} You speak in a warm storytelling tone like a passionate local historian, not a textbook. Keep every answer to 3-5 sentences maximum. If asked about booking or visiting, mention they can use the Tour Calculator on this page. Never make up facts — if unsure, say so honestly.
+    const systemPrompt = `You are a passionate, warm local tour guide for Pakistan's historical sites.
+Explain history and stories in 2 to 3 engaging, vivid sentences that anyone can easily picture.
+Respond directly in character. Never include a checklist, self-critique, thoughts, or meta-notes.`
 
-CRITICAL OUTPUT FORMATTING RULES:
-- Output ONLY the final response intended directly for the user.
-- NEVER output internal reasoning, step numbers, stage headers, or drafting commentary (e.g., do NOT print "Outline:", "Draft:", "Step 1:", "Final Polish:", "Check sentence count", etc.).
-- Do NOT include any meta-talk or planning steps. Start immediately with the direct answer.`
+    const siteContext = `Site: ${siteName}, a ${siteType} in ${siteCity}, ${siteProvince}, Pakistan. Era: ${siteEra}. Period: ${sitePeriod}.`
 
     const messages = [
       { role: 'system', content: systemPrompt },
+      { role: 'system', content: siteContext },
       ...(Array.isArray(history) ? history.map(msg => ({
         role: msg.role === 'assistant' ? 'assistant' : 'user',
         content: msg.content
@@ -400,12 +411,22 @@ CRITICAL OUTPUT FORMATTING RULES:
     let reply = ''
     try {
       const response = await groq.chat.completions.create({
-        model: 'qwen/qwen3.6-27b',
-        max_tokens: 450,
+        model: 'groq/compound',
+        temperature: 0.7,
+        max_tokens: 500,
         messages
       })
 
-      reply = stripThinkingTags(response.choices[0]?.message?.content)
+      const rawReply = response.choices[0]?.message?.content?.trim() || ''
+      reply = stripThinkingTags(rawReply)
+
+      let cleanReply = reply
+        .replace(/^(?:\d+\.\s*\*\*.*?\*\*[\s\S]*?)+/i, '')
+        .replace(/<think>[\s\S]*?<\/think>/gi, '')
+        .trim()
+
+      if (!cleanReply) cleanReply = reply.trim()
+      reply = cleanReply
     } catch (apiError) {
       console.error('Groq API call error in chat:', apiError.message)
       reply = `${siteName} is a magnificent ${siteEra} ${siteType} located in ${siteCity}, ${siteProvince}. It offers visitors a deep connection to Pakistan's rich history and architectural heritage. Feel free to ask more about its history or use the Tour Calculator on this page to plan your visit.`
